@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MERCADONA RAGE '89: EL TERROR DE LA COMPRA (EDICIÓN PRO)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :root {
+    --bg-dark: #09090e;
+    --panel-bg: #14141d;
+    --panel-border: #2c2c3d;
+    --merc-green: #00a651;
+    --merc-orange: #f37021;
+    --arcade-gold: #ffd100;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    background-image: radial-gradient(circle at 50% 20%, #19221d 0%, #09090e 70%);
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding: 8px;
+    overflow-x: hidden;
+    touch-action: manipulation;
+  }
+
+  #game-wrapper {
+    width: 100%;
+    max-width: 1020px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #arcade-cabinet {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border: 4px solid #2e2e42;
+    border-radius: 12px;
+    box-shadow:
+      0 0 36px rgba(0, 166, 81, 0.32),
+      0 0 14px rgba(243, 112, 33, 0.22),
+      inset 0 0 24px rgba(0, 0, 0, 0.92);
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  /* Scanlines sutiles CRT */
+  #crt-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.18) 50%
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  #ui-bar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--panel-bg);
+    border: 2px solid var(--panel-border);
+    border-radius: 10px;
+    font-size: 9px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn-arcade {
+    background: linear-gradient(180deg, #00b85c 0%, #006b34 100%);
+    color: #fff;
+    border: 2px solid var(--merc-orange);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8.5px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #00391c;
+    transition: transform 0.08s, filter 0.12s;
+    touch-action: manipulation;
+  }
+
+  .btn-arcade:hover {
+    filter: brightness(1.08);
+  }
+
+  .btn-arcade:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #00391c;
+  }
+
+  .btn-apk {
+    background: linear-gradient(180deg, #f37021 0%, #b84306 100%);
+    border-color: var(--arcade-gold);
+    box-shadow: 0 3px 0 #5c1f02;
+  }
+
+  .controls-legend {
+    color: #c5cedb;
+    line-height: 1.65;
+  }
+
+  .key-badge {
+    background: #252536;
+    color: var(--arcade-gold);
+    padding: 2px 5px;
+    border-radius: 4px;
+    border: 1px solid #484863;
+  }
+
+  /* Controles táctiles optimizados para Android */
+  #touch-controls {
+    display: none;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(20, 20, 29, 0.92);
+    border: 2px solid var(--panel-border);
+    border-radius: 12px;
+    gap: 12px;
+  }
+
+  #touch-controls.active {
+    display: flex;
+  }
+
+  @media (pointer: coarse), (max-width: 820px) {
+    #touch-controls {
+      display: flex;
+    }
+    .controls-legend {
+      display: none;
+    }
+    #arcade-cabinet {
+      border-width: 3px;
+      border-radius: 8px;
+    }
+  }
+
+  /* Stick analógico virtual izquierdo */
+  #stick-zone {
+    position: relative;
+    width: 124px;
+    height: 124px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #2a2a3d, #14141d);
+    border: 3px solid #444460;
+    box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.85);
+    touch-action: none;
+    flex-shrink: 0;
+  }
+
+  #stick-knob {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    left: 38px;
+    top: 38px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #37d67a, #007a3d);
+    border: 3px solid var(--arcade-gold);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.65);
+    pointer-events: none;
+  }
+
+  .stick-hints {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    color: rgba(255, 255, 255, 0.25);
+    font-size: 9px;
+  }
+  .stick-hints span { position: absolute; }
+  .h-u { top: 6px; left: 50%; transform: translateX(-50%); }
+  .h-d { bottom: 6px; left: 50%; transform: translateX(-50%); }
+  .h-l { left: 7px; top: 50%; transform: translateY(-50%); }
+  .h-r { right: 7px; top: 50%; transform: translateY(-50%); }
+
+  /* Botones de acción a la derecha */
+  .right-pad {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 68px);
+    grid-template-rows: repeat(2, 56px);
+    gap: 8px;
+  }
+
+  .touch-btn {
+    background: linear-gradient(180deg, #343449 0%, #1e1e2c 100%);
+    border: 2px solid #7e7ea1;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.3;
+    box-shadow: 0 4px 0 #101018;
+    touch-action: none;
+    cursor: pointer;
+  }
+
+  .touch-btn.pressed {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #101018;
+    filter: brightness(1.25);
+  }
+
+  .t-whip {
+    background: linear-gradient(180deg, #00b85c 0%, #006b34 100%);
+    border-color: #6effb2;
+  }
+  .t-throw {
+    background: linear-gradient(180deg, #f37021 0%, #ad4205 100%);
+    border-color: #ffd166;
+  }
+  .t-jump {
+    background: linear-gradient(180deg, #3a7bd5 0%, #1d437a 100%);
+    border-color: #90e0ef;
+  }
+  .t-fury {
+    background: linear-gradient(180deg, #e63946 0%, #8c141e 100%);
+    border-color: #ffd100;
+  }
+  .t-swap {
+    width: 144px;
+    height: 34px;
+    font-size: 7.5px;
+    background: linear-gradient(180deg, #5a4e8c 0%, #372e5c 100%);
+    border-color: #ffd100;
+  }
+
+  /* Modal Guía APK Android */
+  #apk-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+  }
+
+  #apk-modal.open {
+    display: flex;
+  }
+
+  .modal-box {
+    width: 100%;
+    max-width: 680px;
+    max-height: 88vh;
+    overflow-y: auto;
+    background: #151521;
+    border: 3px solid var(--merc-green);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 0 35px rgba(0, 166, 81, 0.45);
+    font-size: 8.5px;
+    line-height: 1.75;
+    color: #e4e8f0;
+  }
+
+  .modal-box h2 {
+    color: var(--arcade-gold);
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+
+  .modal-box h3 {
+    color: var(--merc-orange);
+    font-size: 9px;
+    margin: 12px 0 6px;
+  }
+
+  .code-snippet {
+    background: #09090f;
+    border: 1px solid #32324a;
+    border-radius: 6px;
+    padding: 10px;
+    margin: 6px 0 10px;
+    color: #72efdd;
+    font-family: monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-wrapper">
+  <div id="arcade-cabinet">
+    <canvas id="gameCanvas" width="480" height="270"></canvas>
+    <div id="crt-overlay"></div>
+  </div>
+
+  <div id="ui-bar">
+    <div class="controls-legend">
+      <span class="key-badge">WASD/FLECHAS</span> Mover &nbsp;
+      <span class="key-badge">Z/J</span> Látigo Bolsa &nbsp;
+      <span class="key-badge">X/K</span> Lanzar/Golpe &nbsp;
+      <span class="key-badge">Q</span> Producto &nbsp;
+      <span class="key-badge">C/L</span> Saltar &nbsp;
+      <span class="key-badge">ESPACIO</span> ¡Cierre Caja!
+    </div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+      <button id="btn-touch" class="btn-arcade">📱 MANDO: AUTO</button>
+      <button id="btn-audio" class="btn-arcade">🔊 SONIDO: ON</button>
+      <button id="btn-apk" class="btn-arcade btn-apk">🤖 GENERAR APK</button>
+      <button id="btn-restart" class="btn-arcade">🔄 REINICIAR</button>
+    </div>
+  </div>
+
+  <!-- Controles táctiles Android (Stick virtual + Botones de acción) -->
+  <div id="touch-controls">
+    <div id="stick-zone">
+      <div class="stick-hints">
+        <span class="h-u">▲</span>
+        <span class="h-d">▼</span>
+        <span class="h-l">◀</span>
+        <span class="h-r">▶</span>
+      </div>
+      <div id="stick-knob"></div>
+    </div>
+
+    <div class="right-pad">
+      <button class="touch-btn t-swap" id="btn-touch-swap">🛒 CAMBIAR PRODUCTO [Q]</button>
+      <div class="action-grid">
+        <button class="touch-btn t-whip" data-action="whip">BOLSA<br>[Z]</button>
+        <button class="touch-btn t-throw" data-action="throw">LANZAR<br>[X]</button>
+        <button class="touch-btn t-jump" data-action="jump">SALTAR<br>[C]</button>
+        <button class="touch-btn t-fury" data-action="special">¡CAJA!<br>[SPC]</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Guía para compilar APK real en Android -->
+<div id="apk-modal">
+  <div class="modal-box">
+    <h2>🤖 CÓMO CONVERTIR ESTE JUEGO EN UN APK DE ANDROID</h2>
+    <p>Este entorno web genera un archivo HTML5 autocontenido. Para compilar un instalador <strong>.apk</strong> real para tu móvil Android sin perder ni un píxel ni un sonido, tienes dos vías rápidas:</p>
+
+    <h3>OPCIÓN 1: CAPACITOR (RECOMENDADA - APK NATIVO COMPLETO)</h3>
+    <div class="code-snippet">mkdir mercadona-rage && cd mercadona-rage
+npm init -y && npm install @capacitor/core @capacitor/cli @capacitor/android
+npx cap init "Mercadona Rage 89" "com.inserso89.mercadonarage"
+mkdir -p www && cp mercadona_rage_89.html www/index.html
+npx cap add android && npx cap open android</div>
+    <p>Dentro de <strong>Android Studio</strong>, ve a <em>Build &gt; Build Bundle(s) / APK(s) &gt; Build APK(s)</em> y obtendrás tu archivo <code>app-debug.apk</code>.</p>
+
+    <h3>OPCIÓN 2: PWABUILDER (RÁPIDA DESDE NAVEGADOR)</h3>
+    <p>Sube este archivo HTML a GitHub Pages, Netlify o Vercel (con HTTPS), abre <strong>pwabuilder.com</strong>, pega tu URL y selecciona <strong>Android</strong> para descargar el paquete APK/AAB listo para instalar.</p>
+
+    <div class="modal-footer">
+      <button id="btn-close-apk" class="btn-arcade">ENTENDIDO, A REPARTIR</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/**
+ * MERCADONA RAGE '89: EL TERROR DE LA COMPRA (EDICIÓN PRO)
+ * Beat 'em up lateral 16-bits con estética cómic-gamberra, paralaje multicapa,
+ * hit-stop, partículas, onomatopeyas, 4 productos arrojadizos y mando táctil Android.
+ */
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const WIDTH = 480;
+const HEIGHT = 270;
+const FLOOR_TOP = 148;
+const FLOOR_BOTTOM = 256;
+
+// ============================================================================
+// 1. SINTETIZADOR CHIPTUNE 16-BIT (WEB AUDIO API)
+// ============================================================================
+class SoundSystem {
+  constructor() {
+    this.ctx = null;
+    this.enabled = true;
+    this.bgmInterval = null;
+    this.step = 0;
+    this.isBossMusic = false;
+  }
+
+  init() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  toggle() {
+    this.enabled = !this.enabled;
+    if (!this.enabled) {
+      this.stopMusic();
+    } else if (game.state === 'PLAYING') {
+      this.startMusic(this.isBossMusic);
+    }
+    return this.enabled;
+  }
+
+  playTone(freq, type, duration, vol = 0.12, slideTo = null) {
+    if (!this.enabled) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    if (slideTo) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), now + duration);
+    }
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  playNoise(duration, vol = 0.15, filterFreq = 1100) {
+    if (!this.enabled) return;
+    this.init();
+    const bufferSize = Math.max(1, Math.floor(this.ctx.sampleRate * duration));
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = filterFreq;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noise.start();
+  }
+
+  sfxWhip() {
+    this.playNoise(0.11, 0.2, 1600);
+    this.playTone(620, 'triangle', 0.09, 0.13, 170);
+  }
+
+  sfxHit(heavy = false) {
+    this.playNoise(heavy ? 0.15 : 0.09, heavy ? 0.28 : 0.2, heavy ? 650 : 1200);
+    this.playTone(heavy ? 115 : 155, 'square', heavy ? 0.16 : 0.1, heavy ? 0.2 : 0.15, 38);
+  }
+
+  sfxThrow() {
+    this.playTone(340, 'sine', 0.14, 0.12, 720);
+  }
+
+  sfxSplatter() {
+    this.playNoise(0.18, 0.22, 850);
+    this.playTone(210, 'sawtooth', 0.14, 0.12, 75);
+  }
+
+  sfxPickup() {
+    this.playTone(523.25, 'square', 0.07, 0.1);
+    setTimeout(() => this.playTone(783.99, 'square', 0.11, 0.1), 65);
+  }
+
+  sfxOldYell() {
+    this.playTone(290, 'sawtooth', 0.22, 0.11, 130);
+  }
+
+  sfxSpecial() {
+    this.playNoise(0.35, 0.24, 900);
+    this.playTone(220, 'sawtooth', 0.35, 0.16, 880);
+  }
+
+  sfxExplosion() {
+    this.playNoise(0.42, 0.3, 450);
+    this.playTone(110, 'sawtooth', 0.4, 0.22, 26);
+  }
+
+  startMusic(boss = false) {
+    this.stopMusic();
+    this.isBossMusic = boss;
+    if (!this.enabled) return;
+    this.init();
+    this.step = 0;
+
+    const normalBass = [110, 110, 130.8, 146.8, 110, 110, 164.8, 146.8];
+    const normalLead = [440, 0, 523.2, 587.3, 659.2, 587.3, 523.2, 392];
+
+    const bossBass = [98, 98, 103.8, 98, 116.5, 110, 103.8, 87.3];
+    const bossLead = [392, 415.3, 466.1, 415.3, 523.2, 466.1, 415.3, 349.2];
+
+    const tempo = boss ? 132 : 160;
+    this.bgmInterval = setInterval(() => {
+      if (!this.enabled || game.state !== 'PLAYING' || game.hitStop > 0) return;
+      const idx = this.step % 8;
+      const bassFreq = boss ? bossBass[idx] : normalBass[idx];
+      const leadFreq = boss ? bossLead[idx] : normalLead[idx];
+
+      this.playTone(bassFreq, 'sawtooth', 0.12, 0.055);
+      if (leadFreq > 0 && (this.step % 2 === 0 || boss)) {
+        this.playTone(leadFreq, 'square', 0.11, 0.04);
+      }
+      if (idx % 2 === 1) {
+        this.playNoise(0.04, 0.035, 2200);
+      }
+      this.step++;
+    }, tempo);
+  }
+
+  stopMusic() {
+    if (this.bgmInterval) {
+      clearInterval(this.bgmInterval);
+      this.bgmInterval = null;
+    }
+  }
+}
+
+const sound = new SoundSystem();
+
+// ============================================================================
+// 2. NIVELES (6 ESCENARIOS ESPAÑA 80-90 + 3 JEFES FINALES) Y PRODUCTOS
+// ============================================================================
+const LEVELS = [
+  {
+    id: 1,
+    title: "NIVEL 1: EL PASILLO DE LA MUERTE",
+    subtitle: "MERCADONA HORA PUNTA - ¡2X1 EN ACEITE DE GIRASOL!",
+    theme: "mercadona",
+    length: 1450,
+    boss: null,
+    waves: [
+      { triggerX: 220, enemies: ['granny_cane', 'granny_cane', 'kids_pack'] },
+      { triggerX: 620, enemies: ['grandpa_walker', 'granny_cane', 'grandpa_cane'] },
+      { triggerX: 1050, enemies: ['grandpa_scooter', 'kids_pack', 'granny_cane', 'grandpa_walker'] }
+    ]
+  },
+  {
+    id: 2,
+    title: "NIVEL 2: EL PARQUE DE LOS JUBILETAS",
+    subtitle: "INSERSO SANGRIENTO, PETANCA Y DENTRÍFICO MORTAL",
+    theme: "park",
+    length: 1550,
+    boss: {
+      type: "boss_angustias",
+      name: "DOÑA ANGUSTIAS, LA DEL CARRITO BLINDADO",
+      hp: 340
+    },
+    waves: [
+      { triggerX: 250, enemies: ['grandpa_cane', 'grandpa_cane', 'granny_cane'] },
+      { triggerX: 700, enemies: ['grandpa_scooter', 'grandpa_walker', 'kids_pack'] },
+      { triggerX: 1120, enemies: ['granny_cane', 'granny_cane', 'grandpa_scooter'] }
+    ]
+  },
+  {
+    id: 3,
+    title: "NIVEL 3: ULTRAMARINOS MORTAL Y BAR PACO",
+    subtitle: "CAÑAS, BRAVAS, VIDEOCLUB VHS Y PENSIONISTAS ENFURECIDOS",
+    theme: "bar_street",
+    length: 1600,
+    boss: null,
+    waves: [
+      { triggerX: 260, enemies: ['kids_pack', 'grandpa_walker', 'granny_cane'] },
+      { triggerX: 720, enemies: ['grandpa_scooter', 'grandpa_cane', 'granny_cane', 'granny_cane'] },
+      { triggerX: 1200, enemies: ['kids_pack', 'grandpa_scooter', 'grandpa_walker', 'grandpa_cane'] }
+    ]
+  },
+  {
+    id: 4,
+    title: "NIVEL 4: PLAZA DEL PUEBLO: CABINA Y SINTROM",
+    subtitle: "DOMINGO DE MISA, QUIOSCO Y RECETA ELECTRÓNICA",
+    theme: "plaza",
+    length: 1650,
+    boss: {
+      type: "boss_manolo",
+      name: "EL SARGENTO URBANO MANOLO (MULTAS EXPLOSIVAS)",
+      hp: 420
+    },
+    waves: [
+      { triggerX: 260, enemies: ['grandpa_walker', 'grandpa_walker', 'granny_cane'] },
+      { triggerX: 760, enemies: ['kids_pack', 'grandpa_scooter', 'grandpa_cane'] },
+      { triggerX: 1220, enemies: ['grandpa_scooter', 'grandpa_scooter', 'granny_cane', 'grandpa_walker'] }
+    ]
+  },
+  {
+    id: 5,
+    title: "NIVEL 5: MERCADO MUNICIPAL: CASQUERÍA Y DESPOJOS",
+    subtitle: "ENTRE CABEZAS DE CERDO Y PESCADILLA CONGELADA",
+    theme: "market",
+    length: 1700,
+    boss: null,
+    waves: [
+      { triggerX: 280, enemies: ['granny_cane', 'granny_cane', 'kids_pack', 'grandpa_cane'] },
+      { triggerX: 800, enemies: ['grandpa_walker', 'grandpa_scooter', 'granny_cane', 'grandpa_cane'] },
+      { triggerX: 1300, enemies: ['kids_pack', 'grandpa_scooter', 'grandpa_walker', 'granny_cane', 'grandpa_cane'] }
+    ]
+  },
+  {
+    id: 6,
+    title: "NIVEL 6: EL MATADERO DEL INSERSO",
+    subtitle: "DESCAMPADO QUINQUI '89 - EL JUICIO FINAL DE LA COMPRA",
+    theme: "wasteland",
+    length: 1800,
+    boss: {
+      type: "boss_butcher",
+      name: "EL ENCARGADO MUTANTE DE CHARCUTERÍA",
+      hp: 540
+    },
+    waves: [
+      { triggerX: 280, enemies: ['kids_pack', 'grandpa_scooter', 'granny_cane', 'grandpa_walker'] },
+      { triggerX: 840, enemies: ['grandpa_scooter', 'grandpa_scooter', 'grandpa_walker', 'granny_cane'] },
+      { triggerX: 1350, enemies: ['kids_pack', 'grandpa_scooter', 'grandpa_walker', 'granny_cane', 'grandpa_cane'] }
+    ]
+  }
+];
+
+const ITEMS = {
+  pan: { name: "BARRA PAN DURO", color: "#e09f3e", dmg: 28, speed: 5.6, stun: 65, splash: false, onomatopoeia: "¡CRACK!" },
+  lata: { name: "LATA FABADA", color: "#d62828", dmg: 44, speed: 8.8, stun: 22, splash: false, onomatopoeia: "¡PLAF!" },
+  leche: { name: "BRICK CADUCADO", color: "#90be6d", dmg: 22, speed: 6.5, stun: 35, splash: 'slow', onomatopoeia: "¡CHAF!" },
+  tomate: { name: "BOTE TOMATE FRITO", color: "#e63946", dmg: 34, speed: 7.4, stun: 28, splash: 'tomate', onomatopoeia: "¡SPLASH!" }
+};
+const ITEM_KEYS = ['pan', 'lata', 'leche', 'tomate'];
+
+// ============================================================================
+// 3. HELPERS DE PIXEL ART + TINTA DE CÓMIC GAMBERRO
+// ============================================================================
+function drawPixelRect(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.floor(x), Math.floor(y), Math.ceil(w), Math.ceil(h));
+}
+
+function drawComicBox(x, y, w, h, fill, ink = '#09090f', border = 2) {
+  drawPixelRect(x - border, y - border, w + border * 2, h + border * 2, ink);
+  drawPixelRect(x, y, w, h, fill);
+}
+
+// ============================================================================
+// 4. ESCENARIOS PARALAJE MULTICAPA CON DETALLES OCHENTEROS Y GROTESCOS
+// ============================================================================
+function drawBackground(theme, camX, timeTick) {
+  if (theme === 'mercadona') {
+    // Capa 0: Fondo de supermercado iluminado por fluorescentes
+    drawPixelRect(0, 0, WIDTH, FLOOR_TOP, '#dce6e0');
+    drawPixelRect(0, 0, WIDTH, 24, '#6c757d');
+    for (let x = -(camX * 0.25) % 120; x < WIDTH; x += 120) {
+      drawPixelRect(x + 18, 9, 76, 6, '#ffffff');
+      drawPixelRect(x + 16, 15, 80, 3, '#90e0ef');
+      // Cadenas colgantes de luces
+      drawPixelRect(x + 32, 0, 2, 9, '#343a40');
+      drawPixelRect(x + 76, 0, 2, 9, '#343a40');
+    }
+
+    // Capa 1: Pasillos lejanos y carteles de secciones
+    for (let x = -(camX * 0.5) % 200; x < WIDTH; x += 200) {
+      drawPixelRect(x + 20, 26, 70, 14, '#0077b6');
+      ctx.fillStyle = '#ffd100';
+      ctx.font = '6px "Press Start 2P"';
+      ctx.fillText('CONGELADOS', x + 24, 35);
+    }
+
+    // Capa 2: Estanterías detalladas con reborde de tinta y productos
+    for (let x = -(camX * 0.85) % 190; x < WIDTH; x += 190) {
+      drawComicBox(x + 10, 42, 140, 104, '#2b2d42', '#09090f', 2);
+      // Sombras internas en baldas
+      for (let row = 0; row < 4; row++) {
+        const sy = 56 + row * 22;
+        drawPixelRect(x + 12, sy + 14, 136, 3, '#adb5bd');
+        drawPixelRect(x + 12, sy + 17, 136, 2, '#111');
+        for (let p = 0; p < 9; p++) {
+          const colors = ['#e63946', '#f4a261', '#2a9d8f', '#e9c46a', '#457b9d', '#00a651'];
+          const px = x + 16 + p * 14;
+          drawComicBox(px, sy + 3, 10, 11, colors[(p + row) % colors.length], '#09090f', 1);
+          drawPixelRect(px + 2, sy + 5, 3, 4, 'rgba(255,255,255,0.45)');
+        }
+      }
+      // Cartel amarillo chillón "¡REBAJÓN '89!"
+      drawComicBox(x + 42, 30, 74, 15, '#ffd100', '#09090f', 2);
+      ctx.fillStyle = '#d62828';
+      ctx.font = '6px "Press Start 2P"';
+      ctx.fillText('OFERTON 89', x + 46, 40);
+    }
+
+    // Suelo de terrazo con reflejos y manchas de aceite
+    drawPixelRect(0, FLOOR_TOP, WIDTH, HEIGHT - FLOOR_TOP, '#ced4da');
+    for (let gx = -(camX) % 32; gx < WIDTH; gx += 32) {
+      drawPixelRect(gx, FLOOR_TOP, 1, HEIGHT - FLOOR_TOP, '#adb5bd');
+    }
+    for (let gy = FLOOR_TOP; gy < HEIGHT; gy += 24) {
+      drawPixelRect(0, gy, WIDTH, 1, '#adb5bd');
+    }
+    for (let x = -(camX) % 240; x < WIDTH; x += 240) {
+      drawPixelRect(x + 65, FLOOR_TOP + 45, 36, 10, 'rgba(255, 209, 0, 0.35)');
+    }
+  }
+  else if (theme === 'park') {
+    // Capa 0: Cielo ochentero con nubes pixeladas
+    drawPixelRect(0, 0, WIDTH, 70, '#4ea8de');
+    drawPixelRect(0, 70, WIDTH, FLOOR_TOP - 70, '#90e0ef');
+    for (let x = -(camX * 0.2) % 180; x < WIDTH; x += 180) {
+      drawPixelRect(x + 25, 22, 48, 12, '#ffffff');
+      drawPixelRect(x + 35, 16, 28, 8, '#ffffff');
+    }
+
+    // Capa 1: Bloques de ladrillo visto con antenas TV y ropa tendida
+    for (let x = -(camX * 0.45) % 165; x < WIDTH; x += 165) {
+      drawComicBox(x + 12, 26, 102, 120, '#9e2a2b', '#1a0c0c', 2);
+      // Antena de TV en tejado
+      drawPixelRect(x + 58, 12, 2, 14, '#222');
+      drawPixelRect(x + 48, 15, 22, 2, '#ccc');
+      for (let wy = 36; wy < 124; wy += 24) {
+        for (let wx = 22; wx < 96; wx += 24) {
+          drawComicBox(x + wx, wy, 14, 15, '#2b2d42', '#111', 1);
+          drawPixelRect(x + wx + 2, wy + 2, 10, 11, '#f4d35e');
+          // Persiana bajada a medias
+          drawPixelRect(x + wx + 2, wy + 2, 10, 4, '#6c757d');
+        }
+      }
+    }
+
+    // Capa 2: Árboles frondosos, bancos de madera, tableros de petanca y papeleras
+    for (let x = -(camX * 0.88) % 220; x < WIDTH; x += 220) {
+      drawComicBox(x + 32, 78, 14, 68, '#582f0e', '#1a0f05', 2);
+      drawComicBox(x + 10, 36, 58, 46, '#2d6a4f', '#081c15', 2);
+      drawPixelRect(x + 18, 28, 42, 18, '#52b788');
+      // Banco de madera de parque
+      drawComicBox(x + 102, 122, 56, 6, '#bc6c25', '#1a0f05', 1);
+      drawComicBox(x + 102, 132, 56, 6, '#dda15e', '#1a0f05', 1);
+      drawPixelRect(x + 108, 122, 4, 24, '#283618');
+      drawPixelRect(x + 148, 122, 4, 24, '#283618');
+      // Papelera verde con pintada gamberra
+      drawComicBox(x + 172, 122, 16, 22, '#007f5f', '#081c15', 2);
+      ctx.fillStyle = '#ffd100';
+      ctx.font = '5px "Press Start 2P"';
+      ctx.fillText('PUNK', x + 173, 134);
+    }
+
+    // Suelo de albero con bolitas de petanca
+    drawPixelRect(0, FLOOR_TOP, WIDTH, HEIGHT - FLOOR_TOP, '#dda15e');
+    for (let i = 0; i < 42; i++) {
+      const px = ((i * 73 - camX) % WIDTH + WIDTH) % WIDTH;
+      const py = FLOOR_TOP + 10 + (i * 19) % 95;
+      drawPixelRect(px, py, 3, 2, '#bc6c25');
+    }
+  }
+  else if (theme === 'bar_street') {
+    drawPixelRect(0, 0, WIDTH, FLOOR_TOP, '#3d405b');
+    for (let x = -(camX * 0.88) % 330; x < WIDTH; x += 330) {
+      // BAR PACO con toldo rayado, jamón colgado y tele CRT en ventana
+      drawComicBox(x + 8, 24, 152, 122, '#f2e8cf', '#0d0d12', 2);
+      for (let s = 0; s < 10; s++) {
+        drawPixelRect(x + 6 + s * 15, 70, 15, 18, s % 2 === 0 ? '#d62828' : '#ffffff');
+      }
+      drawComicBox(x + 26, 40, 114, 18, '#1d3557', '#09090f', 2);
+      ctx.fillStyle = '#ffd100';
+      ctx.font = '8px "Press Start 2P"';
+      ctx.fillText('BAR PACO', x + 40, 52);
+
+      // Tele CRT ochentera en escaparate mostrando fútbol/nieve
+      drawComicBox(x + 22, 92, 24, 18, '#2b2d42', '#09090f', 2);
+      drawPixelRect(x + 25, 95, 15, 12, timeTick % 6 < 3 ? '#4cc9f0' : '#a8dadc');
+      drawPixelRect(x + 41, 97, 3, 3, '#e63946');
+
+      // Barril de cerveza y puerta con cristal
+      drawComicBox(x + 56, 114, 24, 32, '#6f4518', '#111', 2);
+      drawComicBox(x + 98, 104, 28, 42, '#8d5524', '#111', 2);
+      drawPixelRect(x + 103, 110, 18, 14, '#caf0f8');
+
+      // VIDEOCLUB VHS 89 con neón rosa y carátulas
+      drawComicBox(x + 168, 24, 150, 122, '#1f1b2e', '#09090f', 2);
+      drawComicBox(x + 180, 38, 126, 18, '#f72585', '#09090f', 2);
+      ctx.fillStyle = '#00f5d4';
+      ctx.font = '7px "Press Start 2P"';
+      ctx.fillText('VIDEOCLUB 89', x + 186, 50);
+
+      const posterCols = ['#ffd100', '#ef233c', '#4cc9f0', '#90be6d'];
+      for (let c = 0; c < 4; c++) {
+        drawComicBox(x + 182 + c * 32, 70, 24, 36, posterCols[c], '#09090f', 2);
+        drawPixelRect(x + 185 + c * 32, 74, 18, 14, '#111');
+      }
+    }
+
+    // Acera con bordillo y asfalto
+    drawPixelRect(0, FLOOR_TOP, WIDTH, 24, '#adb5bd');
+    drawPixelRect(0, FLOOR_TOP + 22, WIDTH, 3, '#6c757d');
+    drawPixelRect(0, FLOOR_TOP + 25, WIDTH, HEIGHT - FLOOR_TOP - 25, '#2b2d42');
+    for (let x = -(camX) % 64; x < WIDTH; x += 64) {
+      drawPixelRect(x, FLOOR_TOP + 66, 34, 4, '#f8f9fa');
+    }
+  }
+  else if (theme === 'plaza') {
+    drawPixelRect(0, 0, WIDTH, FLOOR_TOP, '#72efdd');
+    drawPixelRect(0, 50, WIDTH, FLOOR_TOP - 50, '#caf0f8');
+
+    // Capa 1: Campanario de iglesia y casas de pueblo
+    for (let x = -(camX * 0.4) % 290; x < WIDTH; x += 290) {
+      drawComicBox(x + 36, 18, 52, 128, '#e6ccb2', '#1c140d', 2);
+      drawComicBox(x + 48, 6, 28, 14, '#b08968', '#1c140d', 2);
+      drawPixelRect(x + 60, 0, 4, 8, '#ffd100');
+      drawPixelRect(x + 58, 2, 8, 3, '#ffd100');
+      drawComicBox(x + 106, 48, 128, 98, '#ede0d4', '#1c140d', 2);
+    }
+
+    // Capa 2: Cabina Telefónica azul, Quiosco de revistas y Seat 127 rojo
+    for (let x = -(camX * 0.9) % 350; x < WIDTH; x += 350) {
+      // Cabina Telefónica
+      drawComicBox(x + 42, 74, 32, 72, '#0077b6', '#041e2e', 2);
+      drawComicBox(x + 46, 84, 24, 42, '#caf0f8', '#041e2e', 1);
+      drawPixelRect(x + 53, 98, 9, 12, '#1d3557');
+      drawPixelRect(x + 55, 112, 5, 8, '#111');
+
+      // Quiosco de prensa con revistas y cómics
+      drawComicBox(x + 136, 68, 82, 78, '#1b4332', '#081c15', 2);
+      drawComicBox(x + 130, 58, 94, 11, '#2d6a4f', '#081c15', 2);
+      for (let r = 0; r < 4; r++) {
+        drawComicBox(x + 144 + r * 17, 84, 13, 17, r % 2 === 0 ? '#ffbe0b' : '#fb5607', '#111', 1);
+      }
+
+      // Seat 127 rojo con matrícula de época
+      drawComicBox(x + 245, 114, 78, 24, '#d90429', '#111', 2);
+      drawComicBox(x + 258, 99, 46, 16, '#d90429', '#111', 2);
+      drawPixelRect(x + 262, 102, 17, 11, '#90e0ef');
+      drawPixelRect(x + 283, 102, 17, 11, '#90e0ef');
+      drawComicBox(x + 254, 132, 15, 14, '#111', '#000', 1);
+      drawComicBox(x + 298, 132, 15, 14, '#111', '#000', 1);
+    }
+
+    // Adoquinado de plaza
+    drawPixelRect(0, FLOOR_TOP, WIDTH, HEIGHT - FLOOR_TOP, '#8d99ae');
+    for (let gy = FLOOR_TOP; gy < HEIGHT; gy += 14) {
+      for (let gx = -(camX) % 24; gx < WIDTH; gx += 24) {
+        drawPixelRect(gx + (gy % 28 === 0 ? 12 : 0), gy, 22, 12, '#6c757d');
+      }
+    }
+  }
+  else if (theme === 'market') {
+    drawPixelRect(0, 0, WIDTH, FLOOR_TOP, '#2b2d42');
+    for (let x = -(camX * 0.88) % 250; x < WIDTH; x += 250) {
+      // Puesto Casquería grotesco con ganchos, jamones y despojos
+      drawComicBox(x + 10, 32, 108, 114, '#f4f1de', '#09090f', 2);
+      drawComicBox(x + 10, 32, 108, 18, '#9e2a2b', '#09090f', 2);
+      ctx.fillStyle = '#fff';
+      ctx.font = '7px "Press Start 2P"';
+      ctx.fillText('CASQUERIA', x + 20, 44);
+      for (let h = 0; h < 4; h++) {
+        drawPixelRect(x + 24 + h * 23, 52, 2, 10, '#adb5bd');
+        drawComicBox(x + 18 + h * 23, 62, 13, 23, '#bc4749', '#2b0707', 1);
+      }
+      drawComicBox(x + 10, 110, 108, 36, '#e07a5f', '#09090f', 2);
+      drawComicBox(x + 26, 98, 18, 13, '#ffb5a7', '#2b0707', 1);
+      drawComicBox(x + 68, 98, 18, 13, '#ffb5a7', '#2b0707', 1);
+
+      // Puesto Pescadería con hielo y raspas
+      drawComicBox(x + 128, 32, 108, 114, '#caf0f8', '#09090f', 2);
+      drawComicBox(x + 128, 32, 108, 18, '#0077b6', '#09090f', 2);
+      ctx.fillStyle = '#fff';
+      ctx.fillText('PESCADERIA', x + 134, 44);
+      drawComicBox(x + 128, 110, 108, 36, '#48cae4', '#09090f', 2);
+    }
+
+    // Suelo mojado con charcos rojizos y verdosos
+    drawPixelRect(0, FLOOR_TOP, WIDTH, HEIGHT - FLOOR_TOP, '#5c677d');
+    for (let x = -(camX) % 160; x < WIDTH; x += 160) {
+      drawPixelRect(x + 28, FLOOR_TOP + 34, 48, 12, '#7f1d1d');
+      drawPixelRect(x + 96, FLOOR_TOP + 68, 40, 10, '#38b000');
+    }
+  }
+  else {
+    // NIVEL 6: EL MATADERO DEL INSERSO (GROTESCO INDUSTRIAL '89)
+    drawPixelRect(0, 0, WIDTH, 64, '#231426');
+    drawPixelRect(0, 64, WIDTH, FLOOR_TOP - 64, '#47253b');
+
+    for (let x = -(camX * 0.45) % 270; x < WIDTH; x += 270) {
+      drawComicBox(x + 18, 28, 90, 118, '#1a1421', '#050508', 2);
+      // Ganchos industriales colgantes en la nave
+      drawPixelRect(x + 42, 28, 2, 24, '#adb5bd');
+      drawComicBox(x + 36, 52, 14, 24, '#9e2a2b', '#050508', 1);
+      drawComicBox(x + 132, 52, 104, 94, '#261d2e', '#050508', 2);
+    }
+
+    for (let x = -(camX * 0.9) % 230; x < WIDTH; x += 230) {
+      // Bidón ardiendo con llamas animadas
+      drawComicBox(x + 38, 114, 22, 32, '#6c757d', '#09090f', 2);
+      const flameH = 10 + (timeTick % 6);
+      drawPixelRect(x + 41, 114 - flameH, 16, flameH, '#f77f00');
+      drawPixelRect(x + 44, 110 - Math.floor(flameH * 0.7), 10, Math.floor(flameH * 0.7), '#fcbf49');
+
+      // Cuba / caldero grotesco burbujeante
+      drawComicBox(x + 86, 122, 30, 24, '#343a40', '#09090f', 2);
+      drawPixelRect(x + 90, 118 - (timeTick % 4), 22, 5, '#70e000');
+
+      // Neumáticos apilados
+      drawComicBox(x + 140, 132, 36, 8, '#111', '#000', 1);
+      drawComicBox(x + 143, 124, 30, 8, '#222', '#000', 1);
+    }
+
+    // Suelo de tierra grotesca con jeringuillas y chatarra
+    drawPixelRect(0, FLOOR_TOP, WIDTH, HEIGHT - FLOOR_TOP, '#3d342b');
+    for (let i = 0; i < 36; i++) {
+      const sx = ((i * 97 - camX) % WIDTH + WIDTH) % WIDTH;
+      const sy = FLOOR_TOP + 12 + (i * 23) % 90;
+      if (i % 3 === 0) {
+        drawPixelRect(sx, sy, 8, 2, '#e0fbfc');
+        drawPixelRect(sx + 8, sy, 4, 1, '#adb5bd');
+        drawPixelRect(sx + 2, sy, 3, 2, '#d62828');
+      } else {
+        drawPixelRect(sx, sy, 6, 4, '#588157');
+      }
+    }
+  }
+}
+
+// ============================================================================
+// 5. JUGADOR (PACO CHÁNDAL '89) CON SQUASH & STRETCH + TINTA CÓMIC
+// ============================================================================
+class Player {
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    this.x = 70;
+    this.y = 200;
+    this.z = 0;
+    this.vz = 0;
+    this.facing = 1;
+    this.hp = 120;
+    this.maxHp = 120;
+    this.fury = 100;
+    this.maxFury = 100;
+    this.speed = 2.45;
+    this.state = 'IDLE';
+    this.stateTimer = 0;
+    this.comboStep = 0;
+    this.comboResetTimer = 0;
+    this.invuln = 0;
+    this.animFrame = 0;
+    this.scaleX = 1;
+    this.scaleY = 1;
+
+    this.currentItemIndex = 0;
+    this.ammo = { pan: 6, lata: 4, leche: 4, tomate: 4 };
+  }
+
+  get currentItemKey() {
+    return ITEM_KEYS[this.currentItemIndex];
+  }
+
+  cycleItem() {
+    this.currentItemIndex = (this.currentItemIndex + 1) % ITEM_KEYS.length;
+    this.scaleX = 1.18;
+    this.scaleY = 0.85;
+    sound.sfxPickup();
+  }
+
+  attackWhip() {
+    if (this.state === 'ATTACK' || this.state === 'HURT') return;
+    this.state = 'ATTACK';
+    this.comboStep = (this.comboStep % 3) + 1;
+    this.stateTimer = this.comboStep === 3 ? 18 : 13;
+    this.comboResetTimer = 38;
+    this.scaleX = 1.24;
+    this.scaleY = 0.82;
+    sound.sfxWhip();
+
+    const reach = this.comboStep === 3 ? 66 : 52;
+    const dmg = this.comboStep === 3 ? 30 : 17;
+    const hx = this.facing === 1 ? this.x + 8 : this.x - reach - 8;
+    const callout = this.comboStep === 3 ? "¡A MAMARLA!" : (this.comboStep === 2 ? "¡ZAS!" : "¡TOMA BOLSA!");
+    game.addFloatingText(this.x + this.facing * 24, this.y - 46, callout, "#ffd100", true);
+    game.checkMeleeHit(
+      hx,
+      this.y - 18,
+      reach,
+      36,
+      dmg,
+      this.facing * (this.comboStep === 3 ? 5.5 : 2.2),
+      this.comboStep === 3 ? 26 : 8,
+      false,
+      this.comboStep === 3
+    );
+  }
+
+  throwItem() {
+    if (this.state === 'HURT') return;
+    let key = this.currentItemKey;
+    if (this.ammo[key] <= 0) {
+      const available = ITEM_KEYS.find(k => this.ammo[k] > 0);
+      if (!available) return;
+      this.currentItemIndex = ITEM_KEYS.indexOf(available);
+      key = this.currentItemKey;
+    }
+    if (this.ammo[key] <= 0) return;
+
+    this.ammo[key]--;
+    this.state = 'ATTACK';
+    this.stateTimer = 11;
+    this.scaleX = 1.16;
+    this.scaleY = 0.88;
+    sound.sfxThrow();
+
+    const spec = ITEMS[key];
+    game.addFloatingText(this.x + this.facing * 18, this.y - 42, spec.onomatopoeia, spec.color, true);
+    game.projectiles.push({
+      fromPlayer: true,
+      kind: key,
+      x: this.x + this.facing * 14,
+      y: this.y,
+      z: this.z + 22,
+      vx: this.facing * spec.speed,
+      dmg: spec.dmg,
+      stun: spec.stun,
+      splash: spec.splash,
+      color: spec.color,
+      life: 82
+    });
+  }
+
+  specialAttack() {
+    if (this.state === 'HURT') return;
+    if (this.fury < 40 && this.hp <= 15) return;
+
+    if (this.fury >= 40) {
+      this.fury -= 40;
+    } else {
+      this.hp -= 12;
+    }
+
+    this.state = 'ATTACK';
+    this.comboStep = 4;
+    this.stateTimer = 24;
+    this.invuln = 28;
+    this.scaleX = 1.3;
+    this.scaleY = 0.78;
+    sound.sfxSpecial();
+    game.shake = 7;
+    game.addFloatingText(this.x, this.y - 52, "¡CIERRAN CAJA 4!", "#ffd100", true);
+    game.checkMeleeHit(this.x - 68, this.y - 30, 136, 60, 48, 0, 45, true, true);
+  }
+
+  jump() {
+    if (this.z === 0 && this.state !== 'HURT') {
+      this.vz = 5.5;
+      this.scaleX = 0.82;
+      this.scaleY = 1.24;
+      game.spawnParticles(this.x, this.y, 0, '#e0d5c1', 6, 1.5);
+      sound.playTone(260, 'square', 0.1, 0.08, 460);
+    }
+  }
+
+  takeDamage(dmg, knockbackX = 0) {
+    if (this.invuln > 0 || game.state !== 'PLAYING') return;
+    this.hp = Math.max(0, this.hp - dmg);
+    this.state = 'HURT';
+    this.stateTimer = 14;
+    this.invuln = 42;
+    this.x += knockbackX;
+    this.fury = Math.min(this.maxFury, this.fury + 16);
+    this.scaleX = 1.25;
+    this.scaleY = 0.8;
+    sound.sfxHit(true);
+    game.shake = 7;
+    game.hitStop = 4;
+    game.spawnParticles(this.x, this.y, 24, '#ff3b30', 10, 2.5);
+    game.addFloatingText(this.x, this.y - 42, `-${dmg} ¡AY!`, "#ff3b30", true);
+
+    if (this.hp <= 0) {
+      game.state = 'GAMEOVER';
+      sound.stopMusic();
+    }
+  }
+
+  update(keys, camX, maxLevelX) {
+    this.scaleX += (1 - this.scaleX) * 0.22;
+    this.scaleY += (1 - this.scaleY) * 0.22;
+
+    if (this.invuln > 0) this.invuln--;
+    if (this.comboResetTimer > 0) {
+      this.comboResetTimer--;
+      if (this.comboResetTimer === 0) this.comboStep = 0;
+    }
+
+    if (this.z > 0 || this.vz !== 0) {
+      this.z += this.vz;
+      this.vz -= 0.34;
+      if (this.z <= 0) {
+        this.z = 0;
+        this.vz = 0;
+        this.scaleX = 1.22;
+        this.scaleY = 0.8;
+        game.spawnParticles(this.x, this.y, 0, '#ced4da', 5, 1.3);
+      }
+    }
+
+    if (this.stateTimer > 0) {
+      this.stateTimer--;
+      if (this.stateTimer === 0) {
+        this.state = 'IDLE';
+      }
+    }
+
+    if (this.state !== 'ATTACK' && this.state !== 'HURT') {
+      let dx = 0;
+      let dy = 0;
+      if (keys['ArrowLeft'] || keys['KeyA']) dx -= 1;
+      if (keys['ArrowRight'] || keys['KeyD']) dx += 1;
+      if (keys['ArrowUp'] || keys['KeyW']) dy -= 1;
+      if (keys['ArrowDown'] || keys['KeyS']) dy += 1;
+
+      if (dx !== 0 || dy !== 0) {
+        const len = Math.hypot(dx, dy);
+        this.x += (dx / len) * this.speed;
+        this.y += (dy / len) * (this.speed * 0.72);
+        if (dx !== 0) this.facing = dx > 0 ? 1 : -1;
+        this.state = 'WALK';
+        this.animFrame += 0.23;
+        if (Math.floor(this.animFrame * 4) % 12 === 0 && this.z === 0) {
+          game.spawnParticles(this.x, this.y, 0, '#adb5bd', 1, 0.7);
+        }
+      } else {
+        this.state = 'IDLE';
+        this.animFrame += 0.06;
+      }
+    }
+
+    const minX = camX + 16;
+    const maxX = game.waveLocked ? camX + WIDTH - 16 : maxLevelX - 16;
+    this.x = Math.max(minX, Math.min(maxX, this.x));
+    this.y = Math.max(FLOOR_TOP + 6, Math.min(FLOOR_BOTTOM, this.y));
+  }
+
+  draw(camX) {
+    if (this.invuln > 0 && Math.floor(this.invuln / 3) % 2 === 0) return;
+
+    const sx = Math.floor(this.x - camX);
+    const sy = Math.floor(this.y - this.z);
+    const shadowScale = Math.max(0.45, 1 - this.z / 90);
+
+    // Sombra dinámica en el suelo
+    ctx.fillStyle = 'rgba(0,0,0,0.48)';
+    ctx.beginPath();
+    ctx.ellipse(sx, Math.floor(this.y), 14 * shadowScale, 5 * shadowScale, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.scale(this.facing * this.scaleX, this.scaleY);
+
+    const walkBob = this.state === 'WALK' ? Math.sin(this.animFrame * 2) * 2 : 0;
+
+    // Zapatillas blancas con franja roja y suela de tinta
+    drawComicBox(-9, -6 + walkBob, 7, 5, '#f8f9fa', '#09090f', 1);
+    drawPixelRect(-8, -3 + walkBob, 5, 2, '#d62828');
+    drawComicBox(2, -6 - walkBob, 7, 5, '#f8f9fa', '#09090f', 1);
+    drawPixelRect(3, -3 - walkBob, 5, 2, '#d62828');
+
+    // Pantalón chándal azul marino con raya blanca
+    drawComicBox(-7, -20, 6, 14, '#1d3557', '#09090f', 1);
+    drawComicBox(1, -20, 6, 14, '#1d3557', '#09090f', 1);
+    drawPixelRect(-6, -20, 1, 14, '#ffffff');
+    drawPixelRect(2, -20, 1, 14, '#ffffff');
+
+    // Chaqueta chándal ochentera tricapa (blanco / rojo / verde azulado)
+    drawComicBox(-9, -36, 18, 17, '#f1faee', '#09090f', 2);
+    drawPixelRect(-8, -30, 16, 5, '#e63946');
+    drawPixelRect(-8, -25, 16, 4, '#2a9d8f');
+
+    // Cabeza con pelo mullet ochentero y bigote
+    drawComicBox(-6, -48, 12, 12, '#ffcdb2', '#09090f', 1);
+    drawComicBox(-8, -51, 15, 5, '#4a2c2a', '#09090f', 1);
+    drawPixelRect(-8, -46, 4, 8, '#3d1e1d'); // Mullet
+    drawPixelRect(2, -44, 3, 2, '#111');
+    drawPixelRect(1, -40, 6, 2, '#3d1e1d');
+
+    // BOLSA DE MERCADONA (Verde y Naranja icónica)
+    if (this.state === 'ATTACK') {
+      if (this.comboStep === 4) {
+        const angle = this.stateTimer * 0.85;
+        const bx = Math.cos(angle) * 46;
+        drawPixelRect(0, -30, bx, 3, '#00a651');
+        drawComicBox(bx - 8, -36, 16, 14, '#00a651', '#09090f', 2);
+        drawPixelRect(bx - 6, -32, 12, 5, '#f37021');
+      } else {
+        const whipLen = this.comboStep === 3 ? 50 : 36;
+        drawPixelRect(6, -31, 10, 5, '#f1faee');
+        drawPixelRect(16, -30, whipLen - 14, 3, '#00a651');
+        drawComicBox(whipLen, -36, 16, 14, '#00a651', '#09090f', 2);
+        drawPixelRect(whipLen + 2, -32, 12, 4, '#f37021');
+      }
+    } else {
+      drawPixelRect(5, -31, 6, 10, '#ffcdb2');
+      drawComicBox(4, -22, 13, 15, '#00a651', '#09090f', 2);
+      drawPixelRect(6, -17, 9, 4, '#f37021');
+      drawPixelRect(6, -25, 2, 4, '#00a651');
+      drawPixelRect(13, -25, 2, 4, '#00a651');
+    }
+
+    ctx.restore();
+  }
+}
+
+// ============================================================================
+// 6. ENEMIGOS LENTOS PERO VIOLENTOS + 3 JEFES FINALES
+// ============================================================================
+class Enemy {
+  constructor(type, x, y, bossConfig = null) {
+    this.type = type;
+    this.x = x;
+    this.y = y;
+    this.facing = -1;
+    this.state = 'CHASE';
+    this.stateTimer = 0;
+    this.slowTimer = 0;
+    this.animFrame = Math.random() * 10;
+    this.isBoss = !!bossConfig;
+    this.bossName = bossConfig ? bossConfig.name : '';
+    this.scaleX = 1;
+    this.scaleY = 1;
+
+    switch (type) {
+      case 'granny_cane':
+        this.hp = 48; this.maxHp = 48; this.speed = 0.85; this.dmg = 12; this.score = 150;
+        break;
+      case 'grandpa_scooter':
+        this.hp = 85; this.maxHp = 85; this.speed = 0.75; this.dmg = 22; this.score = 300;
+        break;
+      case 'kid':
+        this.hp = 20; this.maxHp = 20; this.speed = 1.65; this.dmg = 7; this.score = 80;
+        break;
+      case 'grandpa_walker':
+        this.hp = 110; this.maxHp = 110; this.speed = 0.55; this.dmg = 16; this.score = 250;
+        break;
+      case 'grandpa_cane':
+        this.hp = 62; this.maxHp = 62; this.speed = 0.7; this.dmg = 15; this.score = 200;
+        break;
+      case 'boss_angustias':
+      case 'boss_manolo':
+      case 'boss_butcher':
+        this.hp = bossConfig.hp; this.maxHp = bossConfig.hp;
+        this.speed = type === 'boss_manolo' ? 1.15 : (type === 'boss_butcher' ? 1.05 : 0.9);
+        this.dmg = type === 'boss_butcher' ? 30 : (type === 'boss_manolo' ? 26 : 24);
+        this.score = type === 'boss_butcher' ? 5000 : (type === 'boss_manolo' ? 3000 : 2000);
+        break;
+    }
+  }
+
+  takeDamage(dmg, knockbackX, stunTime = 10, fromDirection = 1, heavy = false) {
+    if (this.type === 'grandpa_walker' && this.state !== 'STUNNED' && fromDirection !== this.facing) {
+      dmg = Math.max(4, Math.floor(dmg * 0.35));
+      game.addFloatingText(this.x, this.y - 38, "¡BLINDAJE ANDADOR!", "#90e0ef", false);
+    }
+
+    this.hp -= dmg;
+    this.x += knockbackX * (this.isBoss ? 0.25 : 1);
+    this.scaleX = 1.24;
+    this.scaleY = 0.78;
+
+    if (stunTime > 15 && !this.isBoss) {
+      this.state = 'STUNNED';
+      this.stateTimer = stunTime;
+    } else if (!this.isBoss) {
+      this.state = 'HURT';
+      this.stateTimer = 10;
+    }
+
+    sound.sfxHit(heavy);
+    game.spawnParticles(this.x, this.y, 20, heavy ? '#ffd100' : '#ff595e', heavy ? 9 : 5, 2.2);
+    game.addFloatingText(this.x, this.y - 34, `-${dmg}`, "#ffffff", heavy);
+
+    if (this.hp <= 0) {
+      sound.sfxOldYell();
+      game.score += this.score;
+      game.spawnParticles(this.x, this.y, 22, '#e63946', 12, 2.8);
+      game.addFloatingText(this.x, this.y - 44, "¡A TOMAR POR CULO!", "#ffbe0b", true);
+      if (Math.random() < 0.36 || this.isBoss) {
+        const dropTypes = ['pan', 'lata', 'leche', 'tomate', 'bocata'];
+        const chosen = dropTypes[Math.floor(Math.random() * dropTypes.length)];
+        game.pickups.push({ x: this.x, y: this.y, kind: chosen, timer: 640 });
+      }
+      return true;
+    }
+    return false;
+  }
+
+  update(player) {
+    this.scaleX += (1 - this.scaleX) * 0.2;
+    this.scaleY += (1 - this.scaleY) * 0.2;
+    this.animFrame += 0.14;
+    if (this.slowTimer > 0) this.slowTimer--;
+
+    if (this.stateTimer > 0) {
+      this.stateTimer--;
+      if (this.stateTimer === 0) {
+        if (this.state === 'WINDUP') {
+          this.executeAttack(player);
+        } else {
+          this.state = 'CHASE';
+        }
+      }
+      if (this.type === 'grandpa_scooter' && this.state === 'ATTACK') {
+        this.x += this.facing * 4.5;
+        if (Math.floor(this.animFrame * 8) % 4 === 0) {
+          game.spawnParticles(this.x - this.facing * 12, this.y, 2, '#ffd100', 1, 1.2);
+        }
+        if (Math.abs(this.x - player.x) < 26 && Math.abs(this.y - player.y) < 16) {
+          player.takeDamage(this.dmg, this.facing * 16);
+          this.state = 'CHASE';
+        }
+      }
+      return;
+    }
+
+    const dx = player.x - this.x;
+    const dy = player.y - this.y;
+    const dist = Math.hypot(dx, dy);
+    this.facing = dx >= 0 ? 1 : -1;
+
+    const currentSpeed = this.slowTimer > 0 ? this.speed * 0.45 : this.speed;
+
+    if (this.isBoss) {
+      if (Math.random() < 0.025 && dist < 220) {
+        this.state = 'WINDUP';
+        this.stateTimer = 22;
+        return;
+      }
+      if (dist > 36) {
+        this.x += (dx / dist) * currentSpeed;
+        this.y += (dy / dist) * (currentSpeed * 0.75);
+      } else {
+        this.state = 'WINDUP';
+        this.stateTimer = 18;
+      }
+      return;
+    }
+
+    if (this.type === 'grandpa_scooter' && Math.abs(dy) < 14 && dist < 190 && dist > 45) {
+      this.state = 'WINDUP';
+      this.stateTimer = 24;
+      sound.playTone(180, 'sawtooth', 0.2, 0.08, 340);
+      return;
+    }
+
+    if (this.type === 'grandpa_cane' && Math.abs(dy) < 16 && dist > 85 && dist < 175 && Math.random() < 0.015) {
+      this.state = 'WINDUP';
+      this.stateTimer = 20;
+      return;
+    }
+
+    const attackRange = this.type === 'kid' ? 22 : 30;
+    if (dist > attackRange || Math.abs(dy) > 12) {
+      this.x += (dx / dist) * currentSpeed;
+      this.y += (dy / dist) * (currentSpeed * 0.8);
+    } else {
+      this.state = 'WINDUP';
+      this.stateTimer = this.type === 'granny_cane' ? 12 : 18;
+    }
+  }
+
+  executeAttack(player) {
+    this.state = 'ATTACK';
+    this.stateTimer = 14;
+    this.scaleX = 1.22;
+    this.scaleY = 0.84;
+
+    if (this.type === 'grandpa_scooter') {
+      this.stateTimer = 32;
+      return;
+    }
+
+    if (this.type === 'grandpa_cane' && Math.abs(this.x - player.x) > 55) {
+      game.projectiles.push({
+        fromPlayer: false,
+        kind: 'denture',
+        x: this.x + this.facing * 12,
+        y: this.y,
+        z: 22,
+        vx: this.facing * 3.8,
+        dmg: 12,
+        color: '#ffffff',
+        life: 75
+      });
+      return;
+    }
+
+    if (this.isBoss) {
+      if (this.type === 'boss_angustias') {
+        this.x += this.facing * 26;
+        game.projectiles.push({
+          fromPlayer: false, kind: 'thermos',
+          x: this.x + this.facing * 18, y: this.y, z: 24,
+          vx: this.facing * 4.5, dmg: 18, color: '#e63946', life: 80
+        });
+      } else if (this.type === 'boss_manolo') {
+        sound.playTone(1850, 'square', 0.25, 0.12);
+        game.projectiles.push({
+          fromPlayer: false, kind: 'ticket',
+          x: this.x + this.facing * 16, y: this.y, z: 24,
+          vx: this.facing * 5.2, dmg: 20, color: '#ffd100', life: 80
+        });
+      } else if (this.type === 'boss_butcher') {
+        for (let offset = -12; offset <= 12; offset += 12) {
+          game.projectiles.push({
+            fromPlayer: false, kind: 'chorizo',
+            x: this.x + this.facing * 18, y: this.y + offset, z: 24,
+            vx: this.facing * 5.0, dmg: 22, color: '#9e2a2b', life: 80
+          });
+        }
+      }
+    }
+
+    const reach = this.isBoss ? 48 : 34;
+    if (Math.abs((this.x + this.facing * 16) - player.x) < reach && Math.abs(this.y - player.y) < 16 && player.z < 18) {
+      player.takeDamage(this.dmg, this.facing * 12);
+    }
+  }
+
+  draw(camX) {
+    const sx = Math.floor(this.x - camX);
+    const sy = Math.floor(this.y);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.42)';
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, this.isBoss ? 23 : 12, this.isBoss ? 7 : 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.scale(this.facing * this.scaleX, this.scaleY);
+
+    const bob = Math.sin(this.animFrame * 2) * 1.5;
+
+    if (this.type === 'granny_cane') {
+      drawComicBox(-7, -22 + bob, 14, 18, '#6d597a', '#09090f', 1);
+      drawComicBox(-5, -32 + bob, 10, 10, '#f4acb7', '#09090f', 1);
+      drawComicBox(-8, -35 + bob, 8, 6, '#e5e5e5', '#09090f', 1);
+      drawPixelRect(2, -29 + bob, 2, 2, '#d00000');
+      const caneAngle = this.state === 'ATTACK' ? 14 : 0;
+      drawComicBox(7, -18, 3, 18 - caneAngle, '#7f4f24', '#09090f', 1);
+      if (this.state === 'ATTACK') {
+        drawComicBox(8, -22, 18, 3, '#7f4f24', '#09090f', 1);
+      }
+    }
+    else if (this.type === 'grandpa_scooter') {
+      drawComicBox(-16, -14, 32, 10, '#d62828', '#09090f', 2);
+      drawPixelRect(8, -26, 6, 14, '#333');
+      drawComicBox(-12, -6, 8, 6, '#111', '#000', 1);
+      drawComicBox(6, -6, 8, 6, '#111', '#000', 1);
+      drawComicBox(-10, -28, 12, 14, '#588157', '#09090f', 1);
+      drawComicBox(-8, -38, 10, 10, '#ffcdb2', '#09090f', 1);
+      drawComicBox(-9, -41, 12, 4, '#222', '#000', 1);
+    }
+    else if (this.type === 'kid') {
+      drawComicBox(-5, -15 + bob, 10, 11, '#8d6e63', '#09090f', 1);
+      drawComicBox(-4, -23 + bob, 8, 8, '#e0a96d', '#09090f', 1);
+      drawComicBox(-5, -25 + bob, 10, 4, '#3e2723', '#09090f', 1);
+      drawPixelRect(-2, -19 + bob, 3, 2, '#5d4037');
+    }
+    else if (this.type === 'grandpa_walker') {
+      drawComicBox(-7, -30 + bob, 13, 24, '#457b9d', '#09090f', 1);
+      drawComicBox(-5, -40 + bob, 10, 10, '#ffcdb2', '#09090f', 1);
+      drawPixelRect(-5, -42 + bob, 10, 3, '#dee2e6');
+      drawComicBox(6, -20, 12, 2, '#e9ecef', '#09090f', 1);
+      drawPixelRect(6, -20, 2, 20, '#adb5bd');
+      drawPixelRect(16, -20, 2, 20, '#adb5bd');
+    }
+    else if (this.type === 'grandpa_cane') {
+      drawComicBox(-7, -30 + bob, 14, 24, '#7f5539', '#09090f', 1);
+      drawComicBox(-5, -40 + bob, 10, 10, '#ffcdb2', '#09090f', 1);
+      drawComicBox(-6, -43 + bob, 12, 4, '#6c757d', '#09090f', 1);
+      drawComicBox(8, -22, 3, 22, '#582f0e', '#09090f', 1);
+    }
+    else if (this.type === 'boss_angustias') {
+      drawComicBox(-16, -48 + bob, 24, 42, '#5e548e', '#09090f', 2);
+      drawComicBox(-12, -62 + bob, 16, 14, '#f4acb7', '#09090f', 2);
+      drawComicBox(-16, -68 + bob, 14, 9, '#ffffff', '#09090f', 2);
+      drawComicBox(8, -32, 24, 26, '#adb5bd', '#09090f', 2);
+      drawPixelRect(32, -28, 6, 4, '#e63946');
+      drawPixelRect(32, -16, 6, 4, '#e63946');
+      drawComicBox(10, -6, 6, 6, '#111', '#000', 1);
+      drawComicBox(24, -6, 6, 6, '#111', '#000', 1);
+    }
+    else if (this.type === 'boss_manolo') {
+      drawComicBox(-14, -48 + bob, 28, 42, '#1d3557', '#09090f', 2);
+      drawPixelRect(-14, -30 + bob, 28, 4, '#ffffff');
+      drawComicBox(-10, -62 + bob, 20, 14, '#ffcdb2', '#09090f', 2);
+      drawComicBox(-12, -68 + bob, 24, 6, '#1d3557', '#09090f', 2);
+      drawPixelRect(-4, -54 + bob, 12, 3, '#3d1e1d');
+      drawComicBox(14, -36, 16, 4, '#111', '#000', 1);
+    }
+    else if (this.type === 'boss_butcher') {
+      drawComicBox(-18, -54 + bob, 36, 48, '#f8f9fa', '#09090f', 2);
+      drawPixelRect(-12, -44 + bob, 24, 24, '#d62828');
+      drawComicBox(-12, -68 + bob, 24, 14, '#ffb5a7', '#09090f', 2);
+      drawComicBox(-12, -73 + bob, 24, 5, '#ffffff', '#09090f', 2);
+      drawComicBox(16, -36, 28, 5, '#dee2e6', '#09090f', 2);
+    }
+
+    ctx.restore();
+
+    if (this.slowTimer > 0) {
+      drawPixelRect(sx - 8, sy - 44, 16, 4, '#90be6d');
+    }
+    if (this.state === 'STUNNED') {
+      ctx.fillStyle = '#ffd100';
+      ctx.font = '8px "Press Start 2P"';
+      ctx.fillText('★', sx - 4, sy - 44);
+    }
+  }
+}
+
+// ============================================================================
+// 7. MOTOR PRINCIPAL DEL JUEGO + PARTÍCULAS + HIT-STOP
+// ============================================================================
+const game = {
+  state: 'TITLE',
+  levelIndex: 0,
+  camX: 0,
+  waveLocked: false,
+  currentWaveIndex: 0,
+  bossSpawned: false,
+  score: 0,
+  introTimer: 0,
+  shake: 0,
+  hitStop: 0,
+  tick: 0,
+
+  player: new Player(),
+  enemies: [],
+  projectiles: [],
+  pickups: [],
+  particles: [],
+  floatingTexts: [],
+  keys: {},
+
+  startNewGame() {
+    this.levelIndex = 0;
+    this.score = 0;
+    this.player.reset();
+    this.loadLevel(0);
+  },
+
+  loadLevel(idx) {
+    this.levelIndex = idx;
+    const lvl = LEVELS[idx];
+    this.camX = 0;
+    this.player.x = 65;
+    this.player.y = 200;
+    this.waveLocked = false;
+    this.currentWaveIndex = 0;
+    this.bossSpawned = false;
+    this.enemies = [];
+    this.projectiles = [];
+    this.pickups = [];
+    this.particles = [];
+    this.floatingTexts = [];
+    this.state = 'LEVEL_INTRO';
+    this.introTimer = 135;
+    sound.stopMusic();
+  },
+
+  spawnParticles(x, y, z, color, count = 8, speed = 2) {
+    for (let i = 0; i < count; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = (0.4 + Math.random() * 0.8) * speed;
+      this.particles.push({
+        x, y, z,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd * 0.6,
+        vz: 1.2 + Math.random() * 2.2,
+        color,
+        size: Math.random() < 0.5 ? 3 : 4,
+        life: 18 + Math.floor(Math.random() * 14)
+      });
+    }
+  },
+
+  spawnWave(enemyTypes) {
+    this.waveLocked = true;
+    enemyTypes.forEach((type, i) => {
+      const side = i % 2 === 0 ? 1 : -1;
+      const spawnX = this.camX + (side === 1 ? WIDTH + 24 + i * 18 : -24 - i * 18);
+      const spawnY = FLOOR_TOP + 18 + (i * 23) % (FLOOR_BOTTOM - FLOOR_TOP - 24);
+
+      if (type === 'kids_pack') {
+        const packCount = 6 + Math.floor(Math.random() * 3);
+        for (let k = 0; k < packCount; k++) {
+          const kx = spawnX + (Math.random() * 44 - 22);
+          const ky = Math.max(FLOOR_TOP + 10, Math.min(FLOOR_BOTTOM - 6, spawnY + (Math.random() * 36 - 18)));
+          this.enemies.push(new Enemy('kid', kx, ky));
+        }
+      } else {
+        this.enemies.push(new Enemy(type, spawnX, spawnY));
+      }
+    });
+  },
+
+  checkMeleeHit(hx, hy, hw, hh, dmg, knockback, stun = 10, isSpecial = false, heavy = false) {
+    let hitAny = false;
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const e = this.enemies[i];
+      if (e.x >= hx && e.x <= hx + hw && Math.abs(e.y - (hy + hh / 2)) <= hh / 2) {
+        const dir = e.x >= this.player.x ? 1 : -1;
+        const dead = e.takeDamage(dmg, isSpecial ? dir * 8 : knockback, stun, dir, heavy);
+        hitAny = true;
+        if (dead) {
+          this.enemies.splice(i, 1);
+        }
+      }
+    }
+    if (hitAny) {
+      this.shake = Math.max(this.shake, heavy ? 6 : 3);
+      if (heavy) this.hitStop = 3;
+      if (!isSpecial) {
+        this.player.fury = Math.min(this.player.maxFury, this.player.fury + 8);
+      }
+    }
+  },
+
+  addFloatingText(x, y, text, color, bold = false) {
+    this.floatingTexts.push({ x, y, text, color, bold, life: 44 });
+  },
+
+  update() {
+    this.tick++;
+    if (this.shake > 0) this.shake--;
+
+    if (this.hitStop > 0) {
+      this.hitStop--;
+      return;
+    }
+
+    if (this.state === 'LEVEL_INTRO') {
+      this.introTimer--;
+      if (this.introTimer <= 0) {
+        this.state = 'PLAYING';
+        sound.startMusic(false);
+      }
+      return;
+    }
+
+    if (this.state !== 'PLAYING') return;
+
+    const lvl = LEVELS[this.levelIndex];
+    this.player.update(this.keys, this.camX, lvl.length);
+
+    if (!this.waveLocked) {
+      const targetCam = Math.max(this.camX, Math.min(lvl.length - WIDTH, this.player.x - WIDTH * 0.35));
+      this.camX = targetCam;
+
+      if (this.currentWaveIndex < lvl.waves.length) {
+        const nextWave = lvl.waves[this.currentWaveIndex];
+        if (this.camX + WIDTH * 0.5 >= nextWave.triggerX) {
+          this.spawnWave(nextWave.enemies);
+          this.currentWaveIndex++;
+        }
+      } else if (lvl.boss && !this.bossSpawned && this.camX >= lvl.length - WIDTH - 10) {
+        this.bossSpawned = true;
+        this.waveLocked = true;
+        const bossEnemy = new Enemy(lvl.boss.type, this.camX + WIDTH - 55, 200, lvl.boss);
+        this.enemies.push(bossEnemy);
+        sound.startMusic(true);
+      } else if (!lvl.boss && this.player.x >= lvl.length - 36) {
+        this.advanceLevel();
+        return;
+      }
+    } else {
+      if (this.enemies.length === 0) {
+        this.waveLocked = false;
+        if (this.bossSpawned) {
+          sound.sfxExplosion();
+          this.shake = 10;
+          setTimeout(() => this.advanceLevel(), 900);
+          this.bossSpawned = false;
+          this.state = 'LEVEL_TRANSITION';
+        }
+      }
+    }
+
+    for (const e of this.enemies) {
+      e.update(this.player);
+    }
+
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const p = this.projectiles[i];
+      p.x += p.vx;
+      p.life--;
+
+      if (p.fromPlayer) {
+        for (let j = this.enemies.length - 1; j >= 0; j--) {
+          const e = this.enemies[j];
+          if (Math.abs(p.x - e.x) < 18 && Math.abs(p.y - e.y) < 16) {
+            if (p.splash === 'slow') {
+              sound.sfxSplatter();
+              this.spawnParticles(p.x, p.y, 18, '#90be6d', 12, 2.4);
+              this.addFloatingText(p.x, p.y - 28, "¡PRINGUE CADUCADO!", "#90be6d", true);
+              this.enemies.forEach(en => {
+                if (Math.hypot(en.x - p.x, en.y - p.y) < 58) {
+                  en.slowTimer = 190;
+                }
+              });
+            } else if (p.splash === 'tomate') {
+              sound.sfxSplatter();
+              this.spawnParticles(p.x, p.y, 18, '#e63946', 14, 2.6);
+              this.addFloatingText(p.x, p.y - 28, "¡TOMATAZO!", "#ff4d6d", true);
+            }
+            const dir = p.vx >= 0 ? 1 : -1;
+            const dead = e.takeDamage(p.dmg, dir * 5, p.stun, dir, p.kind === 'lata' || p.kind === 'tomate');
+            if (dead) this.enemies.splice(j, 1);
+            p.life = 0;
+            break;
+          }
+        }
+      } else {
+        if (Math.abs(p.x - this.player.x) < 14 && Math.abs(p.y - this.player.y) < 14 && this.player.z < 20) {
+          this.player.takeDamage(p.dmg, p.vx > 0 ? 10 : -10);
+          p.life = 0;
+        }
+      }
+
+      if (p.life <= 0) this.projectiles.splice(i, 1);
+    }
+
+    for (let i = this.pickups.length - 1; i >= 0; i--) {
+      const pk = this.pickups[i];
+      pk.timer--;
+      if (Math.abs(pk.x - this.player.x) < 20 && Math.abs(pk.y - this.player.y) < 16) {
+        sound.sfxPickup();
+        if (pk.kind === 'bocata') {
+          this.player.hp = Math.min(this.player.maxHp, this.player.hp + 35);
+          this.addFloatingText(pk.x, pk.y - 22, "+35 BOCATA CALAMARES", "#2a9d8f", true);
+        } else {
+          this.player.ammo[pk.kind] += 3;
+          this.addFloatingText(pk.x, pk.y - 22, `+3 ${ITEMS[pk.kind].name}`, "#ffd100", true);
+        }
+        this.pickups.splice(i, 1);
+        continue;
+      }
+      if (pk.timer <= 0) this.pickups.splice(i, 1);
+    }
+
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const pt = this.particles[i];
+      pt.x += pt.vx;
+      pt.y += pt.vy;
+      pt.z = Math.max(0, pt.z + pt.vz);
+      pt.vz -= 0.22;
+      pt.life--;
+      if (pt.life <= 0) this.particles.splice(i, 1);
+    }
+
+    for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+      const ft = this.floatingTexts[i];
+      ft.y -= 0.65;
+      ft.life--;
+      if (ft.life <= 0) this.floatingTexts.splice(i, 1);
+    }
+  },
+
+  advanceLevel() {
+    if (this.levelIndex + 1 < LEVELS.length) {
+      this.loadLevel(this.levelIndex + 1);
+    } else {
+      this.state = 'VICTORY';
+      sound.stopMusic();
+    }
+  },
+
+  drawHUD() {
+    const p = this.player;
+    drawComicBox(6, 6, 178, 34, 'rgba(13, 13, 18, 0.88)', '#00a651', 2);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '7px "Press Start 2P"';
+    ctx.fillText('PACO (CHÁNDAL 89)', 12, 16);
+
+    drawPixelRect(12, 20, 110, 7, '#4a0e0e');
+    const hpW = Math.max(0, Math.floor((p.hp / p.maxHp) * 110));
+    drawPixelRect(12, 20, hpW, 7, p.hp > 35 ? '#00a651' : '#e63946');
+
+    drawPixelRect(12, 30, 110, 4, '#2b2d42');
+    const furyW = Math.floor((p.fury / p.maxFury) * 110);
+    drawPixelRect(12, 30, furyW, 4, '#f37021');
+
+    const itemKey = p.currentItemKey;
+    const itemInfo = ITEMS[itemKey];
+    drawComicBox(190, 6, 152, 34, 'rgba(13, 13, 18, 0.88)', '#f37021', 2);
+    drawComicBox(196, 14, 14, 14, itemInfo.color, '#fff', 1);
+    ctx.fillStyle = '#ffd100';
+    ctx.font = '6px "Press Start 2P"';
+    ctx.fillText(itemInfo.name, 215, 21);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(`STOCK: x${p.ammo[itemKey]} [Q:CAMBIAR]`, 215, 32);
+
+    drawComicBox(348, 6, 126, 34, 'rgba(13, 13, 18, 0.88)', '#ffd100', 2);
+    ctx.fillStyle = '#ffd100';
+    ctx.fillText(`PTS:${String(this.score).padStart(6, '0')}`, 354, 18);
+    ctx.fillStyle = '#90e0ef';
+    ctx.fillText(`FASE ${this.levelIndex + 1}/6`, 354, 31);
+
+    const activeBoss = this.enemies.find(e => e.isBoss);
+    if (activeBoss) {
+      drawComicBox(40, HEIGHT - 28, WIDTH - 80, 20, 'rgba(15, 10, 15, 0.92)', '#ffbe0b', 2);
+      ctx.fillStyle = '#ffbe0b';
+      ctx.font = '6px "Press Start 2P"';
+      ctx.fillText(activeBoss.bossName, 46, HEIGHT - 19);
+      const bW = Math.max(0, Math.floor((activeBoss.hp / activeBoss.maxHp) * (WIDTH - 92)));
+      drawPixelRect(46, HEIGHT - 15, WIDTH - 92, 5, '#370617');
+      drawPixelRect(46, HEIGHT - 15, bW, 5, '#d00000');
+    }
+
+    if (!this.waveLocked && this.enemies.length === 0 && Math.floor(this.tick / 18) % 2 === 0) {
+      drawComicBox(WIDTH - 78, 52, 66, 20, '#00a651', '#ffd100', 2);
+      ctx.fillStyle = '#ffd100';
+      ctx.font = '9px "Press Start 2P"';
+      ctx.fillText('GO! ->', WIDTH - 71, 66);
+    }
+  },
+
+  draw() {
+    ctx.save();
+    if (this.shake > 0) {
+      ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
+    }
+
+    if (this.state === 'TITLE') {
+      drawPixelRect(0, 0, WIDTH, HEIGHT, '#0b132b');
+      drawPixelRect(0, 24, WIDTH, 14, '#00a651');
+      drawPixelRect(0, 38, WIDTH, 6, '#f37021');
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd100';
+      ctx.font = '16px "Press Start 2P"';
+      ctx.fillText("MERCADONA RAGE '89", WIDTH / 2, 78);
+
+      ctx.fillStyle = '#f37021';
+      ctx.font = '9px "Press Start 2P"';
+      ctx.fillText("EL TERROR DE LA COMPRA (EDICIÓN PRO)", WIDTH / 2, 100);
+
+      drawComicBox(WIDTH / 2 - 24, 118, 48, 48, '#00a651', '#ffd100', 3);
+      drawPixelRect(WIDTH / 2 - 18, 136, 36, 10, '#f37021');
+
+      if (Math.floor(this.tick / 24) % 2 === 0) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '9px "Press Start 2P"';
+        ctx.fillText("PULSA ENTER O TOCA PARA JUGAR", WIDTH / 2, 202);
+      }
+
+      ctx.fillStyle = '#90e0ef';
+      ctx.font = '7px "Press Start 2P"';
+      ctx.fillText("6 NIVELES • 3 JEFES FINALES • MANDO TÁCTIL ANDROID", WIDTH / 2, 236);
+      ctx.fillText("© 1989 INSERSO ARCADE SYSTEMS", WIDTH / 2, 252);
+      ctx.textAlign = 'left';
+      ctx.restore();
+      return;
+    }
+
+    if (this.state === 'LEVEL_INTRO') {
+      const lvl = LEVELS[this.levelIndex];
+      drawPixelRect(0, 0, WIDTH, HEIGHT, '#090a0f');
+      drawComicBox(20, 85, WIDTH - 40, 95, '#1b263b', '#00a651', 3);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd100';
+      ctx.font = '10px "Press Start 2P"';
+      ctx.fillText(lvl.title, WIDTH / 2, 120);
+
+      ctx.fillStyle = '#e0fbfc';
+      ctx.font = '7px "Press Start 2P"';
+      ctx.fillText(lvl.subtitle, WIDTH / 2, 148);
+      ctx.textAlign = 'left';
+      ctx.restore();
+      return;
+    }
+
+    const lvl = LEVELS[this.levelIndex];
+    drawBackground(lvl.theme, this.camX, this.tick);
+
+    for (const pk of this.pickups) {
+      const px = Math.floor(pk.x - this.camX);
+      const py = Math.floor(pk.y);
+      const col = pk.kind === 'bocata' ? '#e09f3e' : ITEMS[pk.kind].color;
+      drawComicBox(px - 7, py - 8, 14, 8, col, '#09090f', 1);
+      drawPixelRect(px - 5, py - 6, 10, 3, '#fff');
+    }
+
+    const renderList = [this.player, ...this.enemies];
+    renderList.sort((a, b) => a.y - b.y);
+    for (const entity of renderList) {
+      entity.draw(this.camX);
+    }
+
+    for (const p of this.projectiles) {
+      const px = Math.floor(p.x - this.camX);
+      const py = Math.floor(p.y - p.z);
+      drawComicBox(px - 5, py - 4, 10, 6, p.color, '#09090f', 1);
+    }
+
+    for (const pt of this.particles) {
+      const px = Math.floor(pt.x - this.camX);
+      const py = Math.floor(pt.y - pt.z);
+      drawPixelRect(px, py, pt.size, pt.size, pt.color);
+    }
+
+    for (const ft of this.floatingTexts) {
+      ctx.font = ft.bold ? '8px "Press Start 2P"' : '6.5px "Press Start 2P"';
+      const tx = Math.floor(ft.x - this.camX - 16);
+      const ty = Math.floor(ft.y);
+      ctx.fillStyle = '#09090f';
+      ctx.fillText(ft.text, tx + 1, ty + 1);
+      ctx.fillStyle = ft.color;
+      ctx.fillText(ft.text, tx, ty);
+    }
+
+    this.drawHUD();
+
+    if (this.state === 'GAMEOVER' || this.state === 'VICTORY') {
+      drawPixelRect(0, 0, WIDTH, HEIGHT, 'rgba(0, 0, 0, 0.8)');
+      ctx.textAlign = 'center';
+      ctx.fillStyle = this.state === 'VICTORY' ? '#00a651' : '#e63946';
+      ctx.font = '15px "Press Start 2P"';
+      ctx.fillText(
+        this.state === 'VICTORY' ? '¡COMPRA COMPLETADA!' : '¡TE HAN PENSIONADO!',
+        WIDTH / 2,
+        105
+      );
+
+      ctx.fillStyle = '#ffd100';
+      ctx.font = '8.5px "Press Start 2P"';
+      ctx.fillText(
+        this.state === 'VICTORY'
+          ? 'HAS SOBREVIVIDO A LA ESPAÑA DE 1989'
+          : 'LOS JUBILETAS SE QUEDARON CON TU BOLSA',
+        WIDTH / 2,
+        135
+      );
+
+      ctx.fillStyle = '#fff';
+      ctx.fillText(`PUNTUACIÓN FINAL: ${this.score}`, WIDTH / 2, 165);
+      ctx.fillText('PULSA ENTER O REINICIAR PARA VOLVER', WIDTH / 2, 205);
+      ctx.textAlign = 'left';
+    }
+
+    ctx.restore();
+  }
+};
+
+// ============================================================================
+// 8. CONTROLES TECLADO, TÁCTILES ANDROID (STICK + BOTONES) Y MODAL APK
+// ============================================================================
+function triggerAction(action, pressed = true) {
+  if (game.state === 'TITLE' && pressed) {
+    sound.init();
+    game.startNewGame();
+    return;
+  }
+  if (!pressed || game.state !== 'PLAYING') return;
+
+  if (action === 'whip') game.player.attackWhip();
+  else if (action === 'throw') game.player.throwItem();
+  else if (action === 'jump') game.player.jump();
+  else if (action === 'special') game.player.specialAttack();
+  else if (action === 'swap') game.player.cycleItem();
+}
+
+window.addEventListener('keydown', (e) => {
+  game.keys[e.code] = true;
+
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+    e.preventDefault();
+  }
+
+  if (game.state === 'TITLE' && (e.code === 'Enter' || e.code === 'Space')) {
+    sound.init();
+    game.startNewGame();
+    return;
+  }
+
+  if ((game.state === 'GAMEOVER' || game.state === 'VICTORY') && e.code === 'Enter') {
+    game.startNewGame();
+    return;
+  }
+
+  if (game.state === 'PLAYING') {
+    if (e.code === 'KeyZ' || e.code === 'KeyJ') game.player.attackWhip();
+    if (e.code === 'KeyX' || e.code === 'KeyK') game.player.throwItem();
+    if (e.code === 'KeyC' || e.code === 'KeyL') game.player.jump();
+    if (e.code === 'Space') game.player.specialAttack();
+    if (e.code === 'KeyQ' || e.code === 'Tab') {
+      e.preventDefault();
+      game.player.cycleItem();
+    }
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  game.keys[e.code] = false;
+});
+
+canvas.addEventListener('click', () => {
+  if (game.state === 'TITLE') {
+    sound.init();
+    game.startNewGame();
+  }
+});
+
+// Stick analógico virtual para Android / móvil
+const stickZone = document.getElementById('stick-zone');
+const stickKnob = document.getElementById('stick-knob');
+let activeStickTouchId = null;
+
+function updateStickFromPoint(clientX, clientY) {
+  const rect = stickZone.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const maxR = rect.width * 0.34;
+
+  let dx = clientX - cx;
+  let dy = clientY - cy;
+  const dist = Math.hypot(dx, dy);
+
+  if (dist > maxR && dist > 0) {
+    dx = (dx / dist) * maxR;
+    dy = (dy / dist) * maxR;
+  }
+
+  stickKnob.style.left = `${(rect.width - stickKnob.offsetWidth) / 2 + dx}px`;
+  stickKnob.style.top = `${(rect.height - stickKnob.offsetHeight) / 2 + dy}px`;
+
+  const deadzone = 10;
+  game.keys['ArrowLeft'] = dx < -deadzone;
+  game.keys['ArrowRight'] = dx > deadzone;
+  game.keys['ArrowUp'] = dy < -deadzone;
+  game.keys['ArrowDown'] = dy > deadzone;
+}
+
+function resetStick() {
+  activeStickTouchId = null;
+  stickKnob.style.left = '38px';
+  stickKnob.style.top = '38px';
+  game.keys['ArrowLeft'] = false;
+  game.keys['ArrowRight'] = false;
+  game.keys['ArrowUp'] = false;
+  game.keys['ArrowDown'] = false;
+}
+
+stickZone.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  sound.init();
+  const touch = e.changedTouches[0];
+  activeStickTouchId = touch.identifier;
+  updateStickFromPoint(touch.clientX, touch.clientY);
+}, { passive: false });
+
+stickZone.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === activeStickTouchId) {
+      updateStickFromPoint(t.clientX, t.clientY);
+    }
+  }
+}, { passive: false });
+
+stickZone.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === activeStickTouchId) resetStick();
+  }
+}, { passive: false });
+
+stickZone.addEventListener('touchcancel', resetStick);
+
+// Botones táctiles de acción
+document.querySelectorAll('.touch-btn[data-action]').forEach(btn => {
+  const action = btn.getAttribute('data-action');
+  btn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    sound.init();
+    btn.classList.add('pressed');
+    triggerAction(action, true);
+  }, { passive: false });
+
+  btn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    btn.classList.remove('pressed');
+    triggerAction(action, false);
+  }, { passive: false });
+});
+
+document.getElementById('btn-touch-swap').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  sound.init();
+  triggerAction('swap', true);
+}, { passive: false });
+
+// Controles de barra superior y modal APK
+const touchControlsEl = document.getElementById('touch-controls');
+let forcedTouch = false;
+
+document.getElementById('btn-touch').addEventListener('click', (e) => {
+  forcedTouch = !forcedTouch;
+  touchControlsEl.classList.toggle('active', forcedTouch);
+  e.target.textContent = forcedTouch ? '📱 MANDO: ON' : '📱 MANDO: AUTO';
+});
+
+document.getElementById('btn-audio').addEventListener('click', (e) => {
+  const on = sound.toggle();
+  e.target.textContent = on ? '🔊 SONIDO: ON' : '🔇 SONIDO: OFF';
+});
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+  sound.init();
+  game.startNewGame();
+});
+
+const apkModal = document.getElementById('apk-modal');
+document.getElementById('btn-apk').addEventListener('click', () => {
+  apkModal.classList.add('open');
+});
+document.getElementById('btn-close-apk').addEventListener('click', () => {
+  apkModal.classList.remove('open');
+});
+apkModal.addEventListener('click', (e) => {
+  if (e.target === apkModal) apkModal.classList.remove('open');
+});
+
+// Bucle principal a 60 FPS
+window.onload = function () {
+  function gameLoop() {
+    game.update();
+    game.draw();
+    requestAnimationFrame(gameLoop);
+  }
+  gameLoop();
+};
+</script>
+</body>
+</html>
